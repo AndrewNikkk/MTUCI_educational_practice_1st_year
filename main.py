@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 # import fake_useragent
 import time
 import json
+import pymysql
+from config import host, user, password, db_name
 
 
 def get_links(text):
@@ -72,6 +74,9 @@ def get_vacancy(link):
     except:
         description = ""
 
+    vacancy_link = f"{link}"
+
+
 
     vacancy = {
         "name":name,
@@ -79,21 +84,136 @@ def get_vacancy(link):
         "skills":skills,
         "experience":experience,
         "employment_mode":employment_mode,
-        "description":description
+        "description":description,
+        "vacancy_link":vacancy_link
     }
     return vacancy
 
 
+def insert_in_db(vacancy, connect):
+    try:
+        name = vacancy.get("name", 'не указано')
+        salary = vacancy.get("salary", '')
+        skills = ', '.join(vacancy.get("skills", ["пусто"]))
+        experience = vacancy.get("experience", 'не указан')
+        employment_mode = ', '.join(vacancy.get("employment_mode", ["пусто"]))
+        description = vacancy.get("description", 'не указан')
+        vacancy_link = vacancy.get("vacancy_link", 'none')
+    except Exception as e:
+        print(f"Произошла ошибка при извлечении данных: {e}")
+        return
 
+    try:
+        with connect.cursor() as cursor:
+            insert_query = """
+            INSERT INTO data (name, salary, skills, experience, employment_mode, description, vacancy_link)
+            VALUES (%s, %s, %s, %s, %s, %s, %s);
+            """
+            cursor.execute(insert_query, (name, salary, skills, experience, employment_mode, description, vacancy_link))
+            connect.commit()
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+
+try:
+    connect = pymysql.connect(
+        host=host,
+        port=3303,
+        user=user,
+        password=password,
+        database=db_name,
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    print("Successfully connected")
+except Exception as ex:
+    print("Connection refused...")
+    print(ex)
 
 
 if __name__ == "__main__":
-    data = []
-    for a in get_links("python"):
-        data.append(get_vacancy(a))
+    for a in get_links("Инженер"):
+        insert_in_db(get_vacancy(a), connect)
         time.sleep(1)
-        with open("data.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+
+
+
+
+
+
+#Подключение к базе данных
+# try:
+#     connect = pymysql.connect(
+#         host=host,
+#         port=3303,
+#         user=user,
+#         password=password,
+#         database=db_name,
+#         cursorclass=pymysql.cursors.DictCursor
+#     )
+#     print("Successfully connected")
+# except Exception as ex:
+#     print("Connection refused...")
+#     print(ex)
+
+# try:
+    # with connect.cursor() as cursor:
+    #     create_table = """
+    #     CREATE TABLE DATA (
+    #         id int AUTO_INCREMENT,
+    #         name varchar(255),
+    #         salary varchar(255),
+    #         skills varchar(255),
+    #         experience varchar(255),
+    #         employment_mode varchar(255),
+    #         description TEXT,
+    #         PRIMARY KEY (id)
+    #     )
+    #     """
+    #     cursor.execute(create_table)
+    #     print("Table created successfully")
+#     name = "JAVA Developer"
+#     with connect.cursor() as cursor:
+#         insert = f"INSERT INTO data (name, salary, skills, experience, employment_mode, description) VALUES ('{name}', 100000, 'Python', '1-3 года', 'Полная занятость', 'Здесь должно быть какое-то длинное описание');"
+#         cursor.execute(insert)
+#         connect.commit()
+#
+#
+# finally:
+#     connect.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #
 # url = "https://hh.ru/search/vacancy?page=0&disableBrowserCache=true&hhtmFrom=vacancy_search_list"
