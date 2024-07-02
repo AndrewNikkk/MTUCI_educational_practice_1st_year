@@ -13,7 +13,7 @@ from vacancy import get_vacancy_bot, cancel_get_vacancy_bot, is_running
 from vacancy import connect
 
 class CurrentID:
-    id = 1
+    id_c = 1
 
 class Parsing_v_states(StatesGroup):
     waiting_for_vacancy_name = State()
@@ -30,23 +30,49 @@ async def vacancy(message: types.Message, state: FSMContext):
 @vacancy_router.message(Parsing_v_states.showing_vacancy, or_f(F.text.lower() == 'начать просмотр', F.text.lower() == 'следующая вакансия'))
 async def vacancy_show(message: types.Message, state: FSMContext):
     try:
-        with connect.cursor() as cursor:
-            cursor.execute(f'SELECT * FROM data WHERE id = {CurrentID.id}')
+        current_id = await state.get_data()
+        current_id = current_id.get('current_id', 1)
+
+        with (connect.cursor() as cursor):
+            cursor.execute('SELECT * FROM data WHERE id = %s', (current_id,))
             row = cursor.fetchone()
-            while row is not None:
-                await message.answer(text=f'{row}', reply_markup=reply.vacancy_play_kb)
-                CurrentID.id += 1
-                break
+            if row is not None:
+                print(row)
+                name = row["name"]
+                salary = row["salary"]
+                skills = row["skills"]
+                experience = row["experience"]
+                emp_mode = row["employment_mode"]
+                vacancy_link = row["vacancy_link"]
+                location = row["location"]
+                employer = row["employer"]
+                await message.answer(
+                    text=f'Название: <b>{name}</b> \n'
+                         f'Уровень дохода: <b>{salary}</b> \n'
+                         f'Требуемый опыт: <b>{experience}</b> \n'
+                         f'График работы: <b>{emp_mode}</b> \n'
+                         f'Местоположение: <b>{location}</b> \n'
+                         f'Работодатель: <b>{employer}</b> \n'
+                         f'Навыки: <b>{skills}</b> \n'
+                         f'Узнать подробнее: {vacancy_link}',
+                    reply_markup=reply.vacancy_play_kb
+                )
+                await state.update_data(current_id=current_id + 1)
+            else:
+                await message.answer('Вакансии закончились.')
     except Exception as e:
         await message.answer(f'Ошибка: {e}')
     await state.set_state(Parsing_v_states.showing_vacancy)
+
+
+
 
 @vacancy_router.message(Parsing_v_states.waiting_for_vacancy_name, ~(F.text.lower() == 'начать просмотр'))
 async def vacancy_parsing(message: types.Message, state: FSMContext):
     await message.answer(f"Начинаю загрузку вакансий <b>'{message.text}'</b> в базу данных...", reply_markup=reply.vacancy_start_kb)
     await state.set_state(Parsing_v_states.showing_vacancy)
     loop = asyncio.get_running_loop()
-    await loop.run_in_executor(executor, get_vacancy_bot(message.text))
+    await loop.run_in_executor(None, get_vacancy_bot,message.text)
 
 
 

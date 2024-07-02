@@ -55,40 +55,40 @@ def get_vacancy(link):
         try:
             name = soup.find(attrs={"class":"W_DJwxf___vacancy-title"}).text
         except:
-            name = ""
+            name = "не указано"
     try:
         salary = soup.find("div", attrs={"data-qa":"vacancy-salary"}).text.replace('\xa0', " ")
     except:
-        salary = "Уровень дохода не указан"
+        salary = "уровень дохода не указан"
     try:
         skills = [skill.text for skill in soup.find("ul", attrs={"class":"vacancy-skill-list--COfJZoDl6Y8AwbMFAh5Z"}).find_all(attrs={"class":"magritte-tag__label___YHV-o_3-0-0"})]
     except:
-        skills = []
+        skills = ["не указаны"]
     try:
         experience = soup.find(attrs={"data-qa":"vacancy-experience"}).text
     except:
-        experience = ""
+        experience = "не указан"
     try:
        employment_mode = [mode.text for mode in soup.find_all(attrs={"data-qa": "vacancy-view-employment-mode"})]
     except:
-        employment_mode = []
+        employment_mode = ["не указан"]
     try:
         description = soup.find(attrs={"data-qa":"vacancy-description"}).text
     except:
-        description = ""
+        description = "отсутствует"
     try:
         location = soup.find(attrs={"data-qa":"vacancy-view-link-location-text"}).text
     except:
         try:
             location = soup.find(attrs={"data-qa":"vacancy-view-location"}).text
         except:
-            location = ''
+            location = 'не указано'
     try:
         employer = soup.find(attrs={"data-qa":"vacancy-company__details"}).text
     except:
         employer = "неизвестен"
 
-    vacancy_link = f"{link}"
+    vacancy_link = f"{link.replace('tver.', '')}"
 
 
 
