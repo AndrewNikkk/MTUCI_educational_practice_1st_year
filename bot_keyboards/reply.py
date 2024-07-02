@@ -16,41 +16,43 @@ start_kb = ReplyKeyboardMarkup(
 vacancy_start_kb = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text='Начать просмотр')
+            KeyboardButton(text='Начать просмотр вакансий')
         ],
     ],
     resize_keyboard=True,
     input_field_placeholder="Нажмите, чтобы начать просмотр загруженных вакансий"
 )
 
-vacancy_play_kb = ReplyKeyboardMarkup(
-    keyboard=[
-        [
-            KeyboardButton(text='Следующая вакансия')
-        ],
-    ],
-    resize_keyboard=True
-)
-
 resume_start_kb = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text='Начать просмотр')
+            KeyboardButton(text='Начать просмотр резюме')
         ],
     ],
     resize_keyboard=True,
     input_field_placeholder="Нажмите, чтобы начать просмотр загруженных резюме"
 )
 
-vacancy_kb = ReplyKeyboardMarkup(
+
+
+vacancy_play_kb = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text='Следующая'),
-            KeyboardButton(text='Вернуться назад')
+            KeyboardButton(text='Следующая вакансия'),
+            KeyboardButton(text='Вернуться к выбору')
         ],
     ],
-    resize_keyboard=True,
-    input_field_placeholder="Воспользуйтесь клавиатурой ниже"
+    resize_keyboard=True
+)
+
+resume_play_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text='Следующее резюме'),
+            KeyboardButton(text='Вернуться к выбору')
+        ],
+    ],
+    resize_keyboard=True
 )
 
 

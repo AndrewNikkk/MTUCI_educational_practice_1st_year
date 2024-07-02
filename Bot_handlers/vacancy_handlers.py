@@ -12,8 +12,6 @@ from bot_keyboards import reply
 from vacancy import get_vacancy_bot, cancel_get_vacancy_bot, is_running
 from vacancy import connect
 
-class CurrentID:
-    id_c = 1
 
 class Parsing_v_states(StatesGroup):
     waiting_for_vacancy_name = State()
@@ -21,20 +19,34 @@ class Parsing_v_states(StatesGroup):
 
 vacancy_router = Router()
 
+@vacancy_router.message(StateFilter('*'), Command('cancel'))
+@vacancy_router.message(StateFilter('*'), F.text.lower() == 'вернуться к выбору')
+async def cancel_handler(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+    await state.clear()
+    await cancel_get_vacancy_bot()
+    await message.answer("<b>Выберите желаемый раздел поиска...</b>", reply_markup=reply.start_kb)
 
 @vacancy_router.message(StateFilter(None), or_f(Command('vacancy'), (F.text.lower() == 'вакансии')))
 async def vacancy(message: types.Message, state: FSMContext):
     await message.answer(text='<b> Введите интересующую Вас должность с помощью клавиатуры </b>', reply_markup=reply.del_kb)
     await state.set_state(Parsing_v_states.waiting_for_vacancy_name)
 
-@vacancy_router.message(Parsing_v_states.showing_vacancy, or_f(F.text.lower() == 'начать просмотр', F.text.lower() == 'следующая вакансия'))
+@vacancy_router.message(Parsing_v_states.showing_vacancy, or_f(F.text.lower() == 'начать просмотр вакансий', F.text.lower() == 'следующая вакансия'))
 async def vacancy_show(message: types.Message, state: FSMContext):
     try:
         current_id = await state.get_data()
         current_id = current_id.get('current_id', 1)
 
+        data = await state.get_data()
+        text = data.get('v_message_text', '')
+        print(text)
+
         with (connect.cursor() as cursor):
-            cursor.execute('SELECT * FROM data WHERE id = %s', (current_id,))
+            query = 'SELECT * FROM data WHERE id = %s AND name LIKE %s'
+            cursor.execute(query, (current_id, f"%{text}%"))
             row = cursor.fetchone()
             if row is not None:
                 print(row)
@@ -59,7 +71,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
                 )
                 await state.update_data(current_id=current_id + 1)
             else:
-                await message.answer('Вакансии закончились.')
+                await message.answer('Вакансии закончились.', reply_markup=reply.vacancy_play_kb)
     except Exception as e:
         await message.answer(f'Ошибка: {e}')
     await state.set_state(Parsing_v_states.showing_vacancy)
@@ -70,6 +82,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
 @vacancy_router.message(Parsing_v_states.waiting_for_vacancy_name, ~(F.text.lower() == 'начать просмотр'))
 async def vacancy_parsing(message: types.Message, state: FSMContext):
     await message.answer(f"Начинаю загрузку вакансий <b>'{message.text}'</b> в базу данных...", reply_markup=reply.vacancy_start_kb)
+    await state.update_data(v_message_text=message.text)
     await state.set_state(Parsing_v_states.showing_vacancy)
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, get_vacancy_bot,message.text)

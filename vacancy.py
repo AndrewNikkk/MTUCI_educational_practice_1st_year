@@ -5,6 +5,7 @@ import pymysql
 from config import host, user, password, db_name
 
 
+
 is_running = True
 
 def get_links(text):
@@ -171,7 +172,7 @@ def get_vacancy_bot(text):
                 break
 
 
-def cancel_get_vacancy_bot():
+async def cancel_get_vacancy_bot():
     global is_running
     is_running = False
 

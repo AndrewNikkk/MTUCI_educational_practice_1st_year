@@ -83,6 +83,8 @@ def get_resume(link):
     except:
         job_search_status = "не указан"
 
+    resume_link = f"{link.replace('tver.', '')}"
+
 
 
     resume = {
@@ -95,7 +97,8 @@ def get_resume(link):
         "key_skills":key_skills,
         "citizenship":citizenship,
         "location":location,
-        "job_search_status":job_search_status
+        "job_search_status":job_search_status,
+        "resume_link":resume_link
     }
     return resume
 
@@ -115,6 +118,7 @@ def insert_in_db(resume, connect):
             citizenship = resume.get("citizenship", "none")
             location = resume.get("location", "none")
             job_search_status = resume.get("job_search_status", "none")
+            resume_link = resume.get('resume_link', 'none')
         except Exception as e:
             print(f"Произошла ошибка при извлечении данных: {e}")
             return
@@ -122,10 +126,10 @@ def insert_in_db(resume, connect):
         try:
             with connect.cursor() as cursor:
                 insert_query = """
-                INSERT INTO resume (name, salary, specialization, busyness_mode, work_schedule, work_experience, key_skills, citizenship, location, job_search_status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                INSERT INTO resume (name, salary, specialization, busyness_mode, work_schedule, work_experience, key_skills, citizenship, location, job_search_status, resume_link)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
                 """
-                cursor.execute(insert_query, (name, salary, specialization, busyness_mode, work_schedule, work_experience, key_skills, citizenship, location, job_search_status))
+                cursor.execute(insert_query, (name, salary, specialization, busyness_mode, work_schedule, work_experience, key_skills, citizenship, location, job_search_status, resume_link))
                 connect.commit()
         except Exception as e:
             print(f"Произошла ошибка: {e}")
