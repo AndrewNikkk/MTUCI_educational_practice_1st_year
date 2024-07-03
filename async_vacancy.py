@@ -1,12 +1,9 @@
 import time
-
-import requests
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 
-from async_mysql import clear_vacancy_table, filling_vacancy_table
-
+from async_mysql import filling_vacancy_table
 
 
 async def get_links(text):
@@ -104,7 +101,9 @@ async def get_vacancy(link):
         time.sleep(1)
 
         return vacancy
-async def main(text):
+
+
+async def insert_in_db_vacancy(text):
     async for a in get_links(f'{text}'):
         vacancy = await get_vacancy(a)
         if vacancy:
@@ -122,18 +121,20 @@ async def main(text):
                 print(f"Произошла ошибка при извлечении данных: {e}")
                 return
             try:
-                await filling_vacancy_table(name,
-                                            salary,
-                                            skills,
-                                            experience,
-                                            employment_mode,
-                                            description,
-                                            vacancy_link,
-                                            location,
-                                            employer)
+                await filling_vacancy_table(
+                    name,
+                    salary,
+                    skills,
+                    experience,
+                    employment_mode,
+                    description,
+                    vacancy_link,
+                    location,
+                    employer
+                )
             except Exception as e:
                 print(f'что-то пошло не так: {e}')
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(insert_in_db_vacancy('python'))

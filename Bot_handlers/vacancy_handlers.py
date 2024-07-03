@@ -1,4 +1,3 @@
-import asyncio
 import aiomysql
 
 from aiogram import types, Router, F
@@ -7,8 +6,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from bot_keyboards import reply
-from async_mysql import send_vacancy_to_bot, loop, clear_vacancy_table
-from async_vacancy import main
+from async_mysql import loop, clear_vacancy_table
+from async_vacancy import insert_in_db_vacancy
 from config import *
 
 
@@ -16,7 +15,9 @@ class Parsing_v_states(StatesGroup):
     waiting_for_vacancy_name = State()
     showing_vacancy = State()
 
+
 vacancy_router = Router()
+
 
 @vacancy_router.message(StateFilter('*'), Command('restart'))
 @vacancy_router.message(StateFilter('*'), F.text.lower() == 'вернуться к выбору')
@@ -27,13 +28,17 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("<b>Выберите желаемый раздел поиска...</b>", reply_markup=reply.start_kb)
 
+
 @vacancy_router.message(StateFilter(None), or_f(Command('vacancy'), (F.text.lower() == 'вакансии')))
 async def vacancy(message: types.Message, state: FSMContext):
     await clear_vacancy_table()
-    await message.answer(text='<b> Введите интересующую Вас должность с помощью клавиатуры </b>', reply_markup=reply.del_kb)
+    await message.answer(text='<b> Введите интересующую Вас должность с помощью клавиатуры </b>',
+                         reply_markup=reply.del_kb)
     await state.set_state(Parsing_v_states.waiting_for_vacancy_name)
 
-@vacancy_router.message(Parsing_v_states.showing_vacancy, or_f(F.text.lower() == 'начать просмотр вакансий', F.text.lower() == 'следующая вакансия'))
+
+@vacancy_router.message(Parsing_v_states.showing_vacancy,
+                        or_f(F.text.lower() == 'начать просмотр вакансий', F.text.lower() == 'следующая вакансия'))
 async def vacancy_show(message: types.Message, state: FSMContext):
     data = await state.get_data()
     current_id = int(data.get('current_id', 0))
@@ -56,7 +61,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
         row = await cursor.fetchone()
         if row is not None:
             print(row)
-            id=row[0]
+            id_v = row[0]
             name = row[1]
             salary = row[2]
             skills = row[3]
@@ -76,10 +81,10 @@ async def vacancy_show(message: types.Message, state: FSMContext):
                      f'Узнать подробнее: {vacancy_link}',
                 reply_markup=reply.vacancy_play_kb
             )
-            await state.update_data(current_id=id)
-            print(f'id обновлено {current_id}')
+            await state.update_data(current_id=id_v)
+            print(f'id резюме обновлено {current_id}')
         else:
-            await message.answer('Вакансии закончились.', reply_markup=reply.vacancy_play_kb)
+            await message.answer('Подождите, идет загрузка...', reply_markup=reply.vacancy_play_kb)
     except Exception as e:
         await message.answer(f'Ошибка: {e}')
     finally:
@@ -87,24 +92,11 @@ async def vacancy_show(message: types.Message, state: FSMContext):
         connect.close()
     await state.set_state(Parsing_v_states.showing_vacancy)
 
+
 @vacancy_router.message(Parsing_v_states.waiting_for_vacancy_name, ~(F.text.lower() == 'начать просмотр'))
 async def vacancy_parsing(message: types.Message, state: FSMContext):
-    await message.answer(f"Начинаю загрузку вакансий <b>'{message.text}'</b> в базу данных...", reply_markup=reply.vacancy_play_kb)
+    await message.answer(f"Начинаю загрузку вакансий <b>'{message.text}'</b> в базу данных...",
+                         reply_markup=reply.vacancy_start_kb)
     await state.set_state(Parsing_v_states.showing_vacancy)
     await state.update_data(v_name_text=message.text)
-    await main(message.text)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    await insert_in_db_vacancy(message.text)
