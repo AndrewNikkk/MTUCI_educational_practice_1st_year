@@ -1,9 +1,10 @@
-import time
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 
 from async_mysql import filling_resume_table
+
+flag_r = True
 
 async def get_links(text):
     async with aiohttp.ClientSession() as session:
@@ -104,41 +105,64 @@ async def get_resume(link):
 
         return resume
 
+
 async def insert_in_db_resume(text):
-    async for a in get_links(f'{text}'):
-        resume = await get_resume(a)
-        if resume:
-            try:
-                name = resume.get("name", 'не указано')
-                salary = resume.get("salary", '')
-                specialization = resume.get("specialization", '')
-                busyness_mode = resume.get("busyness_mode", 'не указан')
-                work_schedule = resume.get("work_schedule", 'не указан')
-                work_experience = resume.get("work_experience", 'none')
-                key_skills = ', '.join(resume.get("key_skills", ["пусто"]))
-                citizenship = resume.get("citizenship", "none")
-                location = resume.get("location", "none")
-                job_search_status = resume.get("job_search_status", "none")
-                resume_link = resume.get('resume_link', 'none')
-            except Exception as e:
-                print(f"Произошла ошибка при извлечении данных: {e}")
+    if flag_r:
+        async for a in get_links(f'{text}'):
+            if flag_r:
+                resume = await get_resume(a)
+            else:
+                print('Выполнение функции insert_resume остановлено  flag = 0' )
                 return
-            try:
-                await filling_resume_table(
-                    name,
-                    salary,
-                    specialization,
-                    busyness_mode,
-                    work_schedule,
-                    work_experience,
-                    key_skills,
-                    citizenship,
-                    location,
-                    job_search_status,
-                    resume_link
-                )
-            except Exception as e:
-                print(f'что-то пошло не так: {e}')
+            if resume:
+                try:
+                    name = resume.get("name", 'не указано')
+                    salary = resume.get("salary", '')
+                    specialization = resume.get("specialization", '')
+                    busyness_mode = resume.get("busyness_mode", 'не указан')
+                    work_schedule = resume.get("work_schedule", 'не указан')
+                    work_experience = resume.get("work_experience", 'none')
+                    key_skills = ', '.join(resume.get("key_skills", ["пусто"]))
+                    citizenship = resume.get("citizenship", "none")
+                    location = resume.get("location", "none")
+                    job_search_status = resume.get("job_search_status", "none")
+                    resume_link = resume.get('resume_link', 'none')
+                except Exception as e:
+                    print(f"Произошла ошибка при извлечении данных: {e}")
+                    return
+                try:
+                    await filling_resume_table(
+                        name,
+                        salary,
+                        specialization,
+                        busyness_mode,
+                        work_schedule,
+                        work_experience,
+                        key_skills,
+                        citizenship,
+                        location,
+                        job_search_status,
+                        resume_link
+                    )
+                except Exception as e:
+                    print(f'что-то пошло не так: {e}')
+    else:
+        print('Выполнение функции insert_resume остановлено  flag = 0')
+        return
+
+
+async def stop_resume():
+    global flag_r
+    flag_r = False
+    return
+
+
+async def start_resume():
+    global flag_r
+    flag_r = True
+    print('flag_r = 1')
+    return
+
 
 
 if __name__ == '__main__':

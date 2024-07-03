@@ -7,7 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 from bot_keyboards import reply
 from async_mysql import loop
-from async_resume import insert_in_db_resume
+from async_resume import insert_in_db_resume, start_resume
 from config import *
 
 
@@ -21,6 +21,7 @@ resume_router = Router()
 
 @resume_router.message(StateFilter(None), or_f(Command('resume'), (F.text.lower() == 'резюме')))
 async def resume(message: types.Message, state: FSMContext):
+    await start_resume()
     await message.answer("<b>Введите интересующую Вас должность с помощью клавиатуры</b>",  reply_markup=reply.del_kb)
     await state.set_state(Parsing_r_states.waiting_for_resume_name)
 

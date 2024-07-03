@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 
 from async_mysql import filling_vacancy_table
 
+flag_v = True
+
 
 async def get_links(text):
     async with aiohttp.ClientSession() as session:
@@ -104,36 +106,58 @@ async def get_vacancy(link):
 
 
 async def insert_in_db_vacancy(text):
-    async for a in get_links(f'{text}'):
-        vacancy = await get_vacancy(a)
-        if vacancy:
-            try:
-                name = vacancy.get("name", 'не указано')
-                salary = vacancy.get("salary", '')
-                skills = ', '.join(vacancy.get("skills", ["пусто"]))
-                experience = vacancy.get("experience", 'не указан')
-                employment_mode = ', '.join(vacancy.get("employment_mode", ["пусто"]))
-                description = vacancy.get("description", 'не указан')
-                vacancy_link = vacancy.get("vacancy_link", 'none')
-                location = vacancy.get("location", "none")
-                employer = vacancy.get("employer", "none")
-            except Exception as e:
-                print(f"Произошла ошибка при извлечении данных: {e}")
+    if flag_v:
+        async for a in get_links(f'{text}'):
+            if flag_v:
+                vacancy = await get_vacancy(a)
+            else:
+                print('Выполнение функции insert_vacancy остановлено  flag = 0')
                 return
-            try:
-                await filling_vacancy_table(
-                    name,
-                    salary,
-                    skills,
-                    experience,
-                    employment_mode,
-                    description,
-                    vacancy_link,
-                    location,
-                    employer
-                )
-            except Exception as e:
-                print(f'что-то пошло не так: {e}')
+            if vacancy:
+                try:
+                    name = vacancy.get("name", 'не указано')
+                    salary = vacancy.get("salary", '')
+                    skills = ', '.join(vacancy.get("skills", ["пусто"]))
+                    experience = vacancy.get("experience", 'не указан')
+                    employment_mode = ', '.join(vacancy.get("employment_mode", ["пусто"]))
+                    description = vacancy.get("description", 'не указан')
+                    vacancy_link = vacancy.get("vacancy_link", 'none')
+                    location = vacancy.get("location", "none")
+                    employer = vacancy.get("employer", "none")
+                except Exception as e:
+                    print(f"Произошла ошибка при извлечении данных: {e}")
+                    return
+                try:
+                    await filling_vacancy_table(
+                        name,
+                        salary,
+                        skills,
+                        experience,
+                        employment_mode,
+                        description,
+                        vacancy_link,
+                        location,
+                        employer
+                    )
+                except Exception as e:
+                    print(f'что-то пошло не так: {e}')
+    else:
+        print('Выполнение функции insert_vacancy остановлено  flag = 0')
+        return
+
+
+async def stop_vacancy():
+    global flag_v
+    flag_v = False
+    return
+
+
+async def start_vacancy():
+    global flag_v
+    flag_v = True
+    print('flag_v=1')
+    return
+
 
 
 if __name__ == '__main__':

@@ -5,7 +5,6 @@ from config import *
 
 loop = asyncio.get_event_loop()
 
-
 async def clear_vacancy_table():
     connect = await aiomysql.connect(
         host=host,
@@ -134,6 +133,7 @@ async def filling_resume_table(
     print('Данные о резюме успешно внесены в таблицу resume')
     await cursor.close()
     connect.close()
+
 
 # if __name__ == '__main__':
 #     asyncio.run(async for row in send_vacancy_to_bot('Python'):
