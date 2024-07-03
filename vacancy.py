@@ -2,11 +2,11 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import pymysql
+
+
 from config import host, user, password, db_name
+from async_mysql import clear_resume_table
 
-
-
-is_running = True
 
 def get_links(text):
     # ua = fake_useragent.UserAgent()

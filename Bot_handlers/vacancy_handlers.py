@@ -1,16 +1,15 @@
 import asyncio
+import aiomysql
 
 from aiogram import types, Router, F
 from aiogram.filters import Command, or_f, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from concurrent.futures import ThreadPoolExecutor
-
-executor = ThreadPoolExecutor(max_workers=1)
 
 from bot_keyboards import reply
-from vacancy import get_vacancy_bot, cancel_get_vacancy_bot, is_running
-from vacancy import connect
+from async_mysql import send_vacancy_to_bot, loop, clear_vacancy_table
+from async_vacancy import main
+from config import *
 
 
 class Parsing_v_states(StatesGroup):
@@ -19,73 +18,86 @@ class Parsing_v_states(StatesGroup):
 
 vacancy_router = Router()
 
-@vacancy_router.message(StateFilter('*'), Command('cancel'))
+@vacancy_router.message(StateFilter('*'), Command('restart'))
 @vacancy_router.message(StateFilter('*'), F.text.lower() == 'вернуться к выбору')
 async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
     await state.clear()
-    await cancel_get_vacancy_bot()
     await message.answer("<b>Выберите желаемый раздел поиска...</b>", reply_markup=reply.start_kb)
 
 @vacancy_router.message(StateFilter(None), or_f(Command('vacancy'), (F.text.lower() == 'вакансии')))
 async def vacancy(message: types.Message, state: FSMContext):
+    await clear_vacancy_table()
     await message.answer(text='<b> Введите интересующую Вас должность с помощью клавиатуры </b>', reply_markup=reply.del_kb)
     await state.set_state(Parsing_v_states.waiting_for_vacancy_name)
 
 @vacancy_router.message(Parsing_v_states.showing_vacancy, or_f(F.text.lower() == 'начать просмотр вакансий', F.text.lower() == 'следующая вакансия'))
 async def vacancy_show(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    current_id = int(data.get('current_id', 0))
+    text = data.get('v_name_text', 'none')
     try:
-        current_id = await state.get_data()
-        current_id = current_id.get('current_id', 1)
-
-        data = await state.get_data()
-        text = data.get('v_message_text', '')
-        print(text)
-
-        with (connect.cursor() as cursor):
-            query = 'SELECT * FROM data WHERE id = %s AND name LIKE %s'
-            cursor.execute(query, (current_id, f"%{text}%"))
-            row = cursor.fetchone()
-            if row is not None:
-                print(row)
-                name = row["name"]
-                salary = row["salary"]
-                skills = row["skills"]
-                experience = row["experience"]
-                emp_mode = row["employment_mode"]
-                vacancy_link = row["vacancy_link"]
-                location = row["location"]
-                employer = row["employer"]
-                await message.answer(
-                    text=f'Название: <b>{name}</b> \n'
-                         f'Уровень дохода: <b>{salary}</b> \n'
-                         f'Требуемый опыт: <b>{experience}</b> \n'
-                         f'График работы: <b>{emp_mode}</b> \n'
-                         f'Местоположение: <b>{location}</b> \n'
-                         f'Работодатель: <b>{employer}</b> \n'
-                         f'Навыки: <b>{skills}</b> \n'
-                         f'Узнать подробнее: {vacancy_link}',
-                    reply_markup=reply.vacancy_play_kb
-                )
-                await state.update_data(current_id=current_id + 1)
-            else:
-                await message.answer('Вакансии закончились.', reply_markup=reply.vacancy_play_kb)
+        connect = await aiomysql.connect(
+            host=host,
+            port=3303,
+            user=user,
+            password=password,
+            db=db_name,
+            loop=loop
+        )
+        print("соединение с бд успешно установлено")
+        cursor = await connect.cursor()
+        insert_query = '''
+                       SELECT * FROM vacancy WHERE id > %s AND name LIKE %s
+                       '''
+        await cursor.execute(insert_query, (current_id, f'%{text}%'))
+        row = await cursor.fetchone()
+        if row is not None:
+            print(row)
+            id=row[0]
+            name = row[1]
+            salary = row[2]
+            skills = row[3]
+            experience = row[4]
+            emp_mode = row[5]
+            vacancy_link = row[7]
+            location = row[8]
+            employer = row[9]
+            await message.answer(
+                text=f'Название: <b>{name}</b> \n'
+                     f'Уровень дохода: <b>{salary}</b> \n'
+                     f'Требуемый опыт: <b>{experience}</b> \n'
+                     f'График работы: <b>{emp_mode}</b> \n'
+                     f'Местоположение: <b>{location}</b> \n'
+                     f'Работодатель: <b>{employer}</b> \n'
+                     f'Навыки: <b>{skills}</b> \n'
+                     f'Узнать подробнее: {vacancy_link}',
+                reply_markup=reply.vacancy_play_kb
+            )
+            await state.update_data(current_id=id)
+            print(f'id обновлено {current_id}')
+        else:
+            await message.answer('Вакансии закончились.', reply_markup=reply.vacancy_play_kb)
     except Exception as e:
         await message.answer(f'Ошибка: {e}')
+    finally:
+        await cursor.close()
+        connect.close()
     await state.set_state(Parsing_v_states.showing_vacancy)
-
-
-
 
 @vacancy_router.message(Parsing_v_states.waiting_for_vacancy_name, ~(F.text.lower() == 'начать просмотр'))
 async def vacancy_parsing(message: types.Message, state: FSMContext):
-    await message.answer(f"Начинаю загрузку вакансий <b>'{message.text}'</b> в базу данных...", reply_markup=reply.vacancy_start_kb)
-    await state.update_data(v_message_text=message.text)
+    await message.answer(f"Начинаю загрузку вакансий <b>'{message.text}'</b> в базу данных...", reply_markup=reply.vacancy_play_kb)
     await state.set_state(Parsing_v_states.showing_vacancy)
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, get_vacancy_bot,message.text)
+    await state.update_data(v_name_text=message.text)
+    await main(message.text)
+
+
+
+
+
 
 
 
