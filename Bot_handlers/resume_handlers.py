@@ -43,9 +43,9 @@ async def resume_show(message: types.Message, state: FSMContext):
         print("соединение с бд успешно установлено")
         cursor = await connect.cursor()
         insert_query = '''
-                       SELECT * FROM resume WHERE id > %s AND name LIKE %s
+                       SELECT * FROM resume WHERE id > %s AND (name LIKE %s OR specialization LIKE %s)
                        '''
-        await cursor.execute(insert_query, (current_id, f'%{text}%'))
+        await cursor.execute(insert_query, (current_id, f'%{text}%', f'%{text}%'))
         row = await cursor.fetchone()
         print(row)
         if row is not None:

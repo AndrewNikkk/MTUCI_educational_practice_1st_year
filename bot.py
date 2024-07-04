@@ -40,7 +40,7 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     await stop_vacancy()
     await stop_resume()
     await state.clear()
-    await message.answer("<b>Выберите желаемый раздел поиска...</b>", reply_markup=reply.start_kb)
+    await message.answer("<b>Выберите раздел поиска...</b>", reply_markup=reply.start_kb)
 
 
 async def main():

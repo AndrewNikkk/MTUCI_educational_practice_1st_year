@@ -1,9 +1,11 @@
 import time
 import aiohttp
 import asyncio
+import aiomysql
 from bs4 import BeautifulSoup
 
-from async_mysql import filling_vacancy_table
+from async_mysql import filling_vacancy_table, loop
+from config import *
 
 flag_v = True
 
@@ -40,69 +42,91 @@ async def get_links(text):
 
 
 async def get_vacancy(link):
-    async with aiohttp.ClientSession() as session:
-        data = await session.get(
-            url=link,
-            headers={"user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
-        )
-        if data.status != 200:
-            return
-        soup = BeautifulSoup(await data.text(),"lxml")
-        try:
-            name = soup.find("h1", attrs={"class":"bloko-header-section-1"}).text
-        except:
+    connect = await aiomysql.connect(
+        host=host,
+        port=3303,
+        user=user,
+        password=password,
+        db=db_name,
+        loop=loop
+    )
+    cursor = await connect.cursor()
+    insert_query = '''SELECT COUNT(*) FROM vacancy WHERE vacancy_link = %s;'''
+    await cursor.execute(insert_query, (link,))
+    print('Проверяем наличие ссылки в бд')
+    link_exists = await cursor.fetchone()
+    if link_exists[0] == 0:
+        print('Ссылка на вакансию не найдена, начинаем загрузку в базу')
+        await cursor.close()
+        connect.close()
+        async with aiohttp.ClientSession() as session:
+            data = await session.get(
+                url=link,
+                headers={"user-agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
+            )
+            if data.status != 200:
+                return
+            soup = BeautifulSoup(await data.text(),"lxml")
             try:
-                name = soup.find(attrs={"class":"W_DJwxf___vacancy-title"}).text
+                name = soup.find("h1", attrs={"class":"bloko-header-section-1"}).text
             except:
-                name = "не указано"
-        try:
-            salary = soup.find("div", attrs={"data-qa":"vacancy-salary"}).text.replace('\xa0', " ")
-        except:
-            salary = "уровень дохода не указан"
-        try:
-            skills = [skill.text for skill in soup.find("ul", attrs={"class":"vacancy-skill-list--COfJZoDl6Y8AwbMFAh5Z"}).find_all(attrs={"class":"magritte-tag__label___YHV-o_3-0-0"})]
-        except:
-            skills = ["не указаны"]
-        try:
-            experience = soup.find(attrs={"data-qa":"vacancy-experience"}).text
-        except:
-            experience = "не указан"
-        try:
-           employment_mode = [mode.text for mode in soup.find_all(attrs={"data-qa": "vacancy-view-employment-mode"})]
-        except:
-            employment_mode = ["не указан"]
-        try:
-            description = soup.find(attrs={"data-qa":"vacancy-description"}).text
-        except:
-            description = "отсутствует"
-        try:
-            location = soup.find(attrs={"data-qa":"vacancy-view-link-location-text"}).text
-        except:
+                try:
+                    name = soup.find(attrs={"class":"W_DJwxf___vacancy-title"}).text
+                except:
+                    name = "не указано"
             try:
-                location = soup.find(attrs={"data-qa":"vacancy-view-location"}).text
+                salary = soup.find("div", attrs={"data-qa":"vacancy-salary"}).text.replace('\xa0', " ")
             except:
-                location = 'не указано'
-        try:
-            employer = soup.find(attrs={"data-qa":"vacancy-company__details"}).text
-        except:
-            employer = "неизвестен"
+                salary = "уровень дохода не указан"
+            try:
+                skills = [skill.text for skill in soup.find("ul", attrs={"class":"vacancy-skill-list--COfJZoDl6Y8AwbMFAh5Z"}).find_all(attrs={"class":"magritte-tag__label___YHV-o_3-0-0"})]
+            except:
+                skills = ["не указаны"]
+            try:
+                experience = soup.find(attrs={"data-qa":"vacancy-experience"}).text
+            except:
+                experience = "не указан"
+            try:
+               employment_mode = [mode.text for mode in soup.find_all(attrs={"data-qa": "vacancy-view-employment-mode"})]
+            except:
+                employment_mode = ["не указан"]
+            try:
+                description = soup.find(attrs={"data-qa":"vacancy-description"}).text
+            except:
+                description = "отсутствует"
+            try:
+                location = soup.find(attrs={"data-qa":"vacancy-view-link-location-text"}).text
+            except:
+                try:
+                    location = soup.find(attrs={"data-qa":"vacancy-view-location"}).text
+                except:
+                    location = 'не указано'
+            try:
+                employer = soup.find(attrs={"data-qa":"vacancy-company__details"}).text
+            except:
+                employer = "неизвестен"
 
-        vacancy_link = f"{link.replace('tver.', '')}"
+            vacancy_link = f"{link.replace('tver.', '')}"
 
-        vacancy = {
-            "name":name,
-            "salary":salary,
-            "skills":skills,
-            "experience":experience,
-            "employment_mode":employment_mode,
-            "description":description,
-            "vacancy_link":vacancy_link,
-            "location":location,
-            "employer":employer
-        }
-        time.sleep(1)
+            vacancy = {
+                "name":name,
+                "salary":salary,
+                "skills":skills,
+                "experience":experience,
+                "employment_mode":employment_mode,
+                "description":description,
+                "vacancy_link":vacancy_link,
+                "location":location,
+                "employer":employer
+            }
+            time.sleep(1)
+            return vacancy
+    else:
+        print('Ссылка уже есть в базе')
+        await cursor.close()
+        connect.close()
+        return
 
-        return vacancy
 
 
 async def insert_in_db_vacancy(text):
