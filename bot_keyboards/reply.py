@@ -81,6 +81,24 @@ vacancy_filter_start_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+
+resume_filter_start_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Применить фильтр")
+        ],
+        [
+            KeyboardButton(text='Город'),
+            KeyboardButton(text='Статус'),
+            KeyboardButton(text='График работы')
+        ],
+        [
+            KeyboardButton(text='Очистить фильтр')
+        ]
+    ],
+    resize_keyboard=True,
+)
+
 vacancy_location_filter_kb = ReplyKeyboardMarkup(
     keyboard=[
         [
@@ -123,6 +141,48 @@ vacancy_emp_mode_filter_kb = ReplyKeyboardMarkup(
 )
 
 
+resume_location_filter_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text='Оставить поле пустым')
+        ],
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Введите название города'
+)
 
+
+resume_status_filter_kb = ReplyKeyboardMarkup(
+    keyboard=[
+
+            [KeyboardButton(text='Не ищет работу')],
+            [KeyboardButton(text='Рассматривает предложения')],
+            [KeyboardButton(text='Активно ищет работу')],
+            [KeyboardButton(text='Предложили работу, решает')],
+            [KeyboardButton(text='Вышел на новое место')],
+            [KeyboardButton(text='Без статуса поиска')],
+            [KeyboardButton(text='Очистить статус поиска')]
+
+
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Выберите статус поиска'
+)
+
+
+resume_work_schedule_filter_kb = ReplyKeyboardMarkup(
+    keyboard=[
+
+            [KeyboardButton(text='Полный день')],
+            [KeyboardButton(text='Удаленная работа')],
+            [KeyboardButton(text='Гибкий график')],
+            [KeyboardButton(text='Сменный график')],
+            [KeyboardButton(text='Вахтовый метод')],
+            [KeyboardButton(text='Очистить график работы')]
+
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Выберите график работы'
+)
 del_kb = ReplyKeyboardRemove()
 

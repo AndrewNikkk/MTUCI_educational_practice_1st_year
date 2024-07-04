@@ -111,7 +111,7 @@ async def vacancy_parsing(message: types.Message, state: FSMContext):
     await insert_in_db_vacancy(message.text)
 
 
-@vacancy_router.message(StateFilter('*'), or_f(Command('filters'), F.text.lower() == 'настроить фильтры'))
+@vacancy_router.message(Parsing_v_states.showing_vacancy, F.text.lower() == 'настроить фильтры')
 async def v_filter_start(message: types.Message, state: FSMContext):
     await state.set_state(Parsing_v_states.waiting_for_filter)
     await message.answer(text='Выберите от одного до трех фильтров, а затем нажмите "Применить фильтры"', reply_markup=reply.vacancy_filter_start_kb)
@@ -139,7 +139,6 @@ async def v_wait_filter_emp_mode(message: types.Message):
 
 @vacancy_router.message(Parsing_v_states.waiting_for_filter, or_f(F.text == 'От 3 до 6 лет', F.text == 'От 1 года до 3 лет', F.text == 'Более 6 лет', F.text == 'Нет опыта', F.text == 'Очистить тип занятости'))
 async def v_get_filter_location(message: types.Message, state: FSMContext):
-    data = await state.get_data()
     if message.text == 'Нет опыта':
         await state.update_data(exp_filter='не требуется')
     if message.text == 'От 3 до 6 лет':
@@ -165,7 +164,6 @@ async def v_get_filter_location(message: types.Message, state: FSMContext):
     if message.text == 'Очистить тип занятости':
         await state.update_data(emp_mode_filter='не имеет значения')
     await state.update_data(emp_mode_filter=message.text)
-
     await message.answer(text='Фильтр записан. Выберите следующий или нажмите "Применить фильтр"',
                          reply_markup=reply.vacancy_filter_start_kb)
 

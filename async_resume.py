@@ -53,7 +53,7 @@ async def get_resume(link):
     print('Проверяем наличие ссылки в бд')
     link_exists = await cursor.fetchone()
     if link_exists[0] == 0:
-        print('Ссылка на вакансию не найдена, начинаем загрузку в базу')
+        print('Ссылка на резюме не найдена, начинаем загрузку в базу')
         await cursor.close()
         connect.close()
 
