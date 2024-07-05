@@ -7,12 +7,13 @@ from aiogram.fsm.state import State, StatesGroup
 
 from bot_keyboards import reply
 from async_mysql import loop
-from async_vacancy import insert_in_db_vacancy, start_vacancy
+from async_vacancy import insert_in_db_vacancy, start_vacancy, stop_vacancy
 from config import *
 
 
 class Parsing_v_states(StatesGroup):
     waiting_for_vacancy_name = State()
+    waiting_for_location_name = State()
     showing_vacancy = State()
     waiting_for_filter = State()
     waiting_for_location_filter = State()
@@ -21,14 +22,25 @@ class Parsing_v_states(StatesGroup):
 vacancy_router = Router()
 
 
-@vacancy_router.message(StateFilter(None), or_f(Command('vacancy'), (F.text.lower() == 'вакансии')))
+@vacancy_router.message(StateFilter(None), F.text.lower() == 'вакансии')
 async def vacancy(message: types.Message, state: FSMContext):
     await state.update_data(location_filter='не имеет значения')
     await state.update_data(exp_filter='не имеет значения')
     await state.update_data(emp_mode_filter='не имеет значения')
     await start_vacancy()
-    await message.answer(text='<b> Введите интересующую Вас должность с помощью клавиатуры </b>',
+    await message.answer(text='<b> Введите название города (необязательно) </b>',
+                         reply_markup=reply.vacancy_location_filter_kb)
+    await state.set_state(Parsing_v_states.waiting_for_location_name)
+
+
+@vacancy_router.message(Parsing_v_states.waiting_for_location_name, F.text)
+async def vacancy_parsing(message: types.Message, state: FSMContext):
+    await message.answer(f"<b>Введите интересующую Вас должность с помощью клавиатуры</b>",
                          reply_markup=reply.del_kb)
+    await state.set_state(Parsing_v_states.showing_vacancy)
+    await state.update_data(location_filter=message.text)
+    if message.text == 'Оставить поле пустым':
+        await state.update_data(location_filter='не имеет значения')
     await state.set_state(Parsing_v_states.waiting_for_vacancy_name)
 
 
@@ -53,9 +65,9 @@ async def vacancy_show(message: types.Message, state: FSMContext):
         print("соединение с бд успешно установлено")
         cursor = await connect.cursor()
         insert_query = '''
-                       SELECT * FROM vacancy WHERE id > %s AND name LIKE %s
+                       SELECT * FROM vacancy WHERE id > %s AND (name LIKE %s OR description LIKE %s)
                        '''
-        values = [current_id, f'%{text}%']
+        values = [current_id, f'%{text}%', f'%{text}%']
 
         if location_filter != 'не имеет значения':
             insert_query += " AND location LIKE %s"
@@ -102,17 +114,24 @@ async def vacancy_show(message: types.Message, state: FSMContext):
     await state.set_state(Parsing_v_states.showing_vacancy)
 
 
-@vacancy_router.message(Parsing_v_states.waiting_for_vacancy_name, ~(F.text.lower() == 'начать просмотр'))
+@vacancy_router.message(Parsing_v_states.waiting_for_vacancy_name, F.text)
 async def vacancy_parsing(message: types.Message, state: FSMContext):
+    data = await state.get_data()
     await message.answer(f"Начинаю загрузку вакансий <b>'{message.text}'</b> в базу данных...",
                          reply_markup=reply.vacancy_start_kb)
     await state.set_state(Parsing_v_states.showing_vacancy)
     await state.update_data(v_name_text=message.text)
-    await insert_in_db_vacancy(message.text)
+    if data['location_filter'] == 'не имеет значения':
+        print("без локации", data['location_filter'])
+        await insert_in_db_vacancy(message.text)
+    else:
+        print('с локацией', data['location_filter'])
+        await insert_in_db_vacancy(message.text, data['location_filter'])
 
 
 @vacancy_router.message(Parsing_v_states.showing_vacancy, F.text.lower() == 'настроить фильтры')
 async def v_filter_start(message: types.Message, state: FSMContext):
+    await stop_vacancy()
     await state.set_state(Parsing_v_states.waiting_for_filter)
     await message.answer(text='Выберите от одного до трех фильтров, а затем нажмите "Применить фильтры"', reply_markup=reply.vacancy_filter_start_kb)
 
@@ -170,18 +189,31 @@ async def v_get_filter_location(message: types.Message, state: FSMContext):
 
 @vacancy_router.message(Parsing_v_states.waiting_for_filter,or_f(F.text == 'Применить фильтр', F.text == 'Очистить фильтр'))
 async def v_chek_filter(message: types.Message, state: FSMContext):
+    await start_vacancy()
     await state.set_state(Parsing_v_states.showing_vacancy)
     await state.update_data(current_id=0)
-    filters = await state.get_data()
-    location_f = filters.get('location_filter', 'не имеет значения')
-    exp_f = filters.get('exp_filter', 'не имеет значения')
-    emp_f = filters.get('emp_mode_filter', 'не имеет значения')
+    data = await state.get_data()
+    location_f = data.get('location_filter', 'не имеет значения')
+    exp_f = data.get('exp_filter', 'не имеет значения')
+    emp_f = data.get('emp_mode_filter', 'не имеет значения')
     if message.text == 'Применить фильтр':
         await message.answer(text=f'<b>Фильтр применен</b> \n  <b>Город:</b> {location_f} \n  <b>Опыт работы:</b> {exp_f} \n  <b>Тип занятости:</b> {emp_f}', reply_markup=reply.vacancy_start_kb)
+        if data['location_filter'] == 'не имеет значения':
+            print("без локации", data['location_filter'])
+            await insert_in_db_vacancy(message.text)
+        else:
+            print('с локацией', data['location_filter'])
+            await insert_in_db_vacancy(data['v_name_text'], data['location_filter'])
     if message.text == 'Очистить фильтр':
         await state.update_data(location_filter='не имеет значения')
         await state.update_data(exp_filter='не имеет значения')
         await state.update_data(emp_mode_filter='не имеет значения')
+        if data['location_filter'] == 'не имеет значения':
+            print("без локации", data['location_filter'])
+            await insert_in_db_vacancy(message.text)
+        else:
+            print('с локацией', data['location_filter'])
+            await insert_in_db_vacancy(data['v_name_text'], data['location_filter'])
         await message.answer(text='Фильтр успешно очищен', reply_markup=reply.vacancy_start_kb)
 
 
