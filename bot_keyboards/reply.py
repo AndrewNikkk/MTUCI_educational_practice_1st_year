@@ -186,3 +186,31 @@ resume_work_schedule_filter_kb = ReplyKeyboardMarkup(
 )
 del_kb = ReplyKeyboardRemove()
 
+
+vacancy_continue_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text='Начать просмотр вакансий')
+        ],
+        [
+            KeyboardButton(text='Настроить фильтры')
+        ]
+    ],
+    resize_keyboard=True,
+    input_field_placeholder="Нажмите, чтобы начать просмотр загруженных вакансий или настроить фильтры"
+)
+
+
+resume_continue_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text='Начать просмотр резюме')
+        ],
+        [
+            KeyboardButton(text='Настроить фильтры')
+        ]
+    ],
+    resize_keyboard=True,
+    input_field_placeholder="Нажмите, чтобы начать просмотр загруженных резюме или настроить фильтры"
+)
+

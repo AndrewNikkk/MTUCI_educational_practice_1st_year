@@ -156,7 +156,7 @@ async def v_wait_filter_emp_mode(message: types.Message):
     await message.answer(text='Выберите опыт работы', reply_markup=reply.vacancy_experience_filter_kb)
 
 
-@vacancy_router.message(Parsing_v_states.waiting_for_filter, or_f(F.text == 'От 3 до 6 лет', F.text == 'От 1 года до 3 лет', F.text == 'Более 6 лет', F.text == 'Нет опыта', F.text == 'Очистить тип занятости'))
+@vacancy_router.message(Parsing_v_states.waiting_for_filter, or_f(F.text == 'От 3 до 6 лет', F.text == 'От 1 года до 3 лет', F.text == 'Более 6 лет', F.text == 'Нет опыта', F.text == 'Очистить опыт работы'))
 async def v_get_filter_location(message: types.Message, state: FSMContext):
     if message.text == 'Нет опыта':
         await state.update_data(exp_filter='не требуется')
@@ -166,7 +166,7 @@ async def v_get_filter_location(message: types.Message, state: FSMContext):
         await state.update_data(exp_filter='1–3 года')
     if message.text == 'Более 6 лет':
         await state.update_data(exp_filter='более 6 лет')
-    if message.text == 'Очистить тип занятости':
+    if message.text == 'Очистить опыт работы':
         await state.update_data(exp_filter='не имеет значения')
     await message.answer(text='Фильтр записан. Выберите следующий или нажмите "Применить фильтр"', reply_markup=reply.vacancy_filter_start_kb)
 
@@ -197,7 +197,7 @@ async def v_chek_filter(message: types.Message, state: FSMContext):
     exp_f = data.get('exp_filter', 'не имеет значения')
     emp_f = data.get('emp_mode_filter', 'не имеет значения')
     if message.text == 'Применить фильтр':
-        await message.answer(text=f'<b>Фильтр применен</b> \n  <b>Город:</b> {location_f} \n  <b>Опыт работы:</b> {exp_f} \n  <b>Тип занятости:</b> {emp_f}', reply_markup=reply.vacancy_start_kb)
+        await message.answer(text=f'<b>Фильтр применен</b> \n  <b>Город:</b> {location_f} \n  <b>Опыт работы:</b> {exp_f} \n  <b>Тип занятости:</b> {emp_f}', reply_markup=reply.vacancy_continue_kb)
         if data['location_filter'] == 'не имеет значения':
             print("без локации", data['location_filter'])
             await insert_in_db_vacancy(message.text)
@@ -208,12 +208,13 @@ async def v_chek_filter(message: types.Message, state: FSMContext):
         await state.update_data(location_filter='не имеет значения')
         await state.update_data(exp_filter='не имеет значения')
         await state.update_data(emp_mode_filter='не имеет значения')
+        await message.answer(text='Фильтр успешно очищен', reply_markup=reply.vacancy_continue_kb)
         if data['location_filter'] == 'не имеет значения':
             print("без локации", data['location_filter'])
             await insert_in_db_vacancy(message.text)
         else:
             print('с локацией', data['location_filter'])
             await insert_in_db_vacancy(data['v_name_text'], data['location_filter'])
-        await message.answer(text='Фильтр успешно очищен', reply_markup=reply.vacancy_start_kb)
+
 
 

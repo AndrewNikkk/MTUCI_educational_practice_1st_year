@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart, StateFilter, Command
+from aiogram.filters import CommandStart, StateFilter
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -23,6 +23,7 @@ ALLOWED_UPDATES = ["message, edited_message"]
 bot = Bot(token=os.getenv('TOKEN'), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
+
 dp.include_router(vacancy_router)
 dp.include_router(resume_router)
 
@@ -31,7 +32,7 @@ dp.include_router(resume_router)
 async def start_cmd(message: types.Message):
     await message.answer("Здравствуйте, начнем поиск!", reply_markup=reply.start_kb)
 
-@dp.message(StateFilter('*'), Command('restart'))
+
 @dp.message(StateFilter('*'), F.text.lower() == 'вернуться к выбору')
 async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
