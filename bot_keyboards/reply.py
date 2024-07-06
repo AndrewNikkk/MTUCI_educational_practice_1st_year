@@ -72,7 +72,8 @@ vacancy_filter_start_kb = ReplyKeyboardMarkup(
         [
             KeyboardButton(text='Город'),
             KeyboardButton(text='Опыт работы'),
-            KeyboardButton(text='Тип занятости')
+            KeyboardButton(text='Тип занятости'),
+            KeyboardButton(text='График работы')
         ],
         [
             KeyboardButton(text='Очистить фильтр')
@@ -90,6 +91,7 @@ resume_filter_start_kb = ReplyKeyboardMarkup(
         [
             KeyboardButton(text='Город'),
             KeyboardButton(text='Статус'),
+            KeyboardButton(text='Тип занятости'),
             KeyboardButton(text='График работы')
         ],
         [
@@ -140,6 +142,22 @@ vacancy_emp_mode_filter_kb = ReplyKeyboardMarkup(
     input_field_placeholder='Выберите тип занятости'
 )
 
+vacancy_work_schedule_filter_kb = ReplyKeyboardMarkup(
+    keyboard=[
+
+            [KeyboardButton(text='Полный день')],
+            [KeyboardButton(text='Удаленная работа')],
+            [KeyboardButton(text='Гибкий график')],
+            [KeyboardButton(text='Сменный график')],
+            [KeyboardButton(text='Вахтовый метод')],
+            [KeyboardButton(text='Очистить график работы')]
+
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Выберите график работы'
+)
+
+
 
 resume_location_filter_kb = ReplyKeyboardMarkup(
     keyboard=[
@@ -167,6 +185,22 @@ resume_status_filter_kb = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True,
     input_field_placeholder='Выберите статус поиска'
+)
+
+
+resume_emp_mode_filter_kb = ReplyKeyboardMarkup(
+    keyboard=[
+
+            [KeyboardButton(text='Полная занятость')],
+            [KeyboardButton(text='Частичная занятость')],
+            [KeyboardButton(text='Стажировка')],
+            [KeyboardButton(text='Проектная работа')],
+            [KeyboardButton(text='Волонтерство')],
+            [KeyboardButton(text='Очистить тип занятости')]
+
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Выберите тип занятости'
 )
 
 
@@ -214,3 +248,10 @@ resume_continue_kb = ReplyKeyboardMarkup(
     input_field_placeholder="Нажмите, чтобы начать просмотр загруженных резюме или настроить фильтры"
 )
 
+list_end_kb = ReplyKeyboardMarkup(
+    keyboard=[
+            [KeyboardButton(text='Вернуться к выбору'),
+             KeyboardButton(text='Настроить фильтры')],
+    ],
+    resize_keyboard=True
+)

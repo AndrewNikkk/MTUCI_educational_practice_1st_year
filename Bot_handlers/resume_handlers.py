@@ -1,7 +1,8 @@
 import aiomysql
+import asyncio
 
 from aiogram import types, Router, F
-from aiogram.filters import Command, or_f, StateFilter
+from aiogram.filters import or_f, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
@@ -51,6 +52,7 @@ async def resume_show(message: types.Message, state: FSMContext):
     text = data.get('r_name_text')
     location_filter = data.get('location_filter', 'не имеет значения')
     status_filter = data.get('status_filter', 'не имеет значения')
+    emp_mode_filter = data.get('emp_mode_filter', 'не имеет значения')
     schedule_filter = data.get('schedule_filter', 'не имеет значения')
     try:
         connect = await aiomysql.connect(
@@ -77,6 +79,9 @@ async def resume_show(message: types.Message, state: FSMContext):
         if schedule_filter != 'не имеет значения':
             insert_query += " AND work_schedule LIKE %s"
             values.append(f'%{schedule_filter}%')
+        if emp_mode_filter != 'не имеет значения':
+            insert_query += " AND busyness_mode LIKE %s"
+            values.append(f'%{emp_mode_filter.lower()}%')
         await cursor.execute(insert_query, values)
         row = await cursor.fetchone()
         print(f'{insert_query}, \n  {values}')
@@ -116,7 +121,78 @@ async def resume_show(message: types.Message, state: FSMContext):
             await cursor.close()
             connect.close()
         else:
-            await message.answer('Подождите, идет загрузка...', reply_markup=reply.resume_play_kb)
+            await message.answer('Подождите, идет загрузка...', reply_markup=reply.del_kb)
+            await asyncio.sleep(7)
+            try:
+                connect = await aiomysql.connect(
+                    host=host,
+                    port=3303,
+                    user=user,
+                    password=password,
+                    db=db_name,
+                    loop=loop
+                )
+                print("соединение с бд успешно установлено")
+                cursor = await connect.cursor()
+                insert_query = '''
+                                       SELECT * FROM resume WHERE id > %s AND (name LIKE %s OR specialization LIKE %s)
+                                       '''
+                values = [current_id, f'%{text}%', f'%{text}%']
+
+                if location_filter != 'не имеет значения':
+                    insert_query += " AND location LIKE %s"
+                    values.append(f'%{location_filter}%')
+                if status_filter != 'не имеет значения':
+                    insert_query += " AND job_search_status LIKE %s"
+                    values.append(f'%{status_filter}%')
+                if schedule_filter != 'не имеет значения':
+                    insert_query += " AND work_schedule LIKE %s"
+                    values.append(f'%{schedule_filter}%')
+                if emp_mode_filter != 'не имеет значения':
+                    insert_query += " AND employment_mode LIKE %s"
+                    values.append(f'%{emp_mode_filter}%')
+                await cursor.execute(insert_query, values)
+                row = await cursor.fetchone()
+                print(f'{insert_query}, \n  {values}')
+                if row is not None:
+                    try:
+                        print(row)
+                        id_r = row[0]
+                        name = row[1]
+                        salary = row[2]
+                        specialization = row[3]
+                        busyness_mode = row[4]
+                        work_schedule = row[5]
+                        work_experience = row[6]
+                        key_skills = row[7]
+                        citizenship = row[8]
+                        location = row[9]
+                        job_search_status = row[10]
+                        resume_link = row[11]
+                    except Exception as e:
+                        print(e)
+                    await message.answer(
+                        text=f'Название: <b>{name}</b> \n'
+                             f'Уровень дохода: <b>{salary}</b> \n'
+                             f'Статус: <b>{job_search_status}</b> \n'
+                             f'График работы: <b>{work_schedule}</b> \n'
+                             f'Тип занятости: <b>{busyness_mode}</b> \n'
+                             f'Местоположение: <b>{location}</b> \n'
+                             f'Специализация: <b>{specialization}</b> \n'
+                             f'Навыки: <b>{key_skills}</b> \n'
+                             f'Гражданство: <b>{citizenship}</b> \n'
+                             f'Опыт работы:<b>{work_experience}</b> \n'
+                             f'Подробнее:{resume_link}',
+                        reply_markup=reply.resume_play_kb
+                    )
+                    await state.update_data(current_id=id_r)
+                    print(f'id резюме обновлено {current_id}')
+                    await cursor.close()
+                    connect.close()
+                else:
+                    await message.answer('Резюме закончились', reply_markup=reply.list_end_kb)
+            except Exception as e:
+                await message.answer(f'Ошибка: {e}')
     except Exception as e:
         await message.answer(f'Ошибка: {e}')
     await state.set_state(Parsing_r_states.showing_resume)
@@ -164,7 +240,7 @@ async def r_wait_status_filter(message: types.Message):
     await message.answer(text='Выберите статус', reply_markup=reply.resume_status_filter_kb)
 
 
-@resume_router.message(Parsing_r_states.waiting_for_filter, or_f(F.text == 'Не ищет работу', F.text == 'Рассматривает предложения', F.text == 'Активно ищет работу', F.text == 'Предложили работу', F.text == 'Вышел на новое место', F.text == 'Без статуса поиска', F.text == 'Очистить статус поиска'))
+@resume_router.message(Parsing_r_states.waiting_for_filter, or_f(F.text == 'Не ищет работу', F.text == 'Рассматривает предложения', F.text == 'Активно ищет работу', F.text == 'Предложили работу, решает', F.text == 'Вышел на новое место', F.text == 'Без статуса поиска', F.text == 'Очистить статус поиска'))
 async def r_get_status_filter(message: types.Message, state: FSMContext):
     if message.text == 'Очистить статус поиска':
         await state.update_data(status_filter='не имеет значения')
@@ -175,6 +251,22 @@ async def r_get_status_filter(message: types.Message, state: FSMContext):
     await message.answer(text='Фильтр записан. Выберите следующий или нажмите "Применить фильтр"', reply_markup=reply.resume_filter_start_kb)
 
 
+@resume_router.message(Parsing_r_states.waiting_for_filter, F.text == 'Тип занятости')
+async def r_wait_filter_emp_mode(message: types.Message):
+    await message.answer(text='Выберите тип занятости', reply_markup=reply.resume_emp_mode_filter_kb)
+
+
+@resume_router.message(Parsing_r_states.waiting_for_filter,
+                        or_f(F.text.lower() == 'полная занятость', F.text.lower() == 'частичная занятость', F.text.lower() == 'проектная работа',
+                             F.text.lower() == 'волонтерство', F.text.lower() == 'стажировка', F.text.lower() == 'очистить тип занятости'))
+async def r_get_filter_location(message: types.Message, state: FSMContext):
+    if message.text == 'Очистить тип занятости':
+        await state.update_data(emp_mode_filter='не имеет значения')
+    await state.update_data(emp_mode_filter=message.text)
+    await message.answer(text='Фильтр записан. Выберите следующий или нажмите "Применить фильтр"',
+                         reply_markup=reply.resume_filter_start_kb)
+
+
 @resume_router.message(Parsing_r_states.waiting_for_filter, F.text == 'График работы')
 async def r_wait_status_filter(message: types.Message):
     await message.answer(text='Выберите график работы', reply_markup=reply.resume_work_schedule_filter_kb)
@@ -183,7 +275,7 @@ async def r_wait_status_filter(message: types.Message):
 @resume_router.message(Parsing_r_states.waiting_for_filter,
                         or_f(F.text.lower() == 'полный день', F.text.lower() == 'удаленная работа', F.text.lower() == 'гибкий график',
                              F.text.lower() == 'сменный график', F.text.lower() == 'вахтовый метод', F.text == 'Очистить график работы'))
-async def v_get_filter_work_schedule(message: types.Message, state: FSMContext):
+async def r_get_filter_work_schedule(message: types.Message, state: FSMContext):
     if message.text == 'Очистить график работы':
         await state.update_data(schedule_filter='не имеет значения')
     else:
@@ -200,9 +292,10 @@ async def r_chek_filter(message: types.Message, state: FSMContext):
     data = await state.get_data()
     location_f = data.get('location_filter', 'не имеет значения')
     status_f = data.get('status_filter', 'не имеет значения')
+    emp_f = data.get('emp_mode_filter', 'не имеет значения')
     schedule_f = data.get('schedule_filter', 'не имеет значения')
     if message.text == 'Применить фильтр':
-        await message.answer(text=f'<b>Фильтр применен</b> \n  <b>Город:</b> {location_f} \n  <b>Статус поиска:</b> {status_f.lower()} \n  <b>График работы:</b> {schedule_f}', reply_markup=reply.resume_continue_kb)
+        await message.answer(text=f'<b>Фильтр применен</b> \n  <b>Город:</b> {location_f} \n  <b>Статус поиска:</b> {status_f.lower()} \n <b>Тип занятости:</b> {emp_f} \n <b>График работы:</b> {schedule_f}', reply_markup=reply.resume_continue_kb)
         if data['location_filter'] == 'не имеет значения':
             print("без локации", data['location_filter'])
             await insert_in_db_resume(message.text)
@@ -212,6 +305,7 @@ async def r_chek_filter(message: types.Message, state: FSMContext):
     if message.text == 'Очистить фильтр':
         await state.update_data(location_filter='не имеет значения')
         await state.update_data(status_filter='не имеет значения')
+        await state.update_data(emp_mode_filter='не имеет значения')
         await state.update_data(schedule_filter='не имеет значения')
         await message.answer(text='Фильтр успешно очищен', reply_markup=reply.resume_continue_kb)
         if data['location_filter'] == 'не имеет значения':

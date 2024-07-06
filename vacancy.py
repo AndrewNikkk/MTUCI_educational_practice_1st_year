@@ -5,7 +5,6 @@ import pymysql
 
 
 from config import host, user, password, db_name
-from async_mysql import clear_resume_table
 
 
 def get_links(text):
@@ -139,7 +138,7 @@ def insert_in_db(vacancy, connect):
 try:
     connect = pymysql.connect(
         host=host,
-        port=3303,
+        port=3306,
         user=user,
         password=password,
         database=db_name,

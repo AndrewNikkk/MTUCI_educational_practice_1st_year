@@ -137,7 +137,7 @@ def insert_in_db(resume, connect):
 try:
     connect = pymysql.connect(
         host=host,
-        port=3303,
+        port=3306,
         user=user,
         password=password,
         database=db_name,

@@ -227,6 +227,7 @@ async def insert_in_db_resume(text, area_name=None):
                     )
                 except Exception as e:
                     print(f'что-то пошло не так: {e}')
+        print("Все резюме вставлены в бд")
     else:
         print('Выполнение функции insert_resume остановлено  flag = 0')
         return

@@ -1,3 +1,5 @@
+import asyncio
+
 import aiomysql
 
 from aiogram import types, Router, F
@@ -53,6 +55,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
     location_filter = data.get('location_filter', 'не имеет значения')
     exp_filter = data.get('exp_filter', 'не имеет значения')
     emp_mode_filter = data.get('emp_mode_filter', 'не имеет значения')
+    schedule_filter = data.get('schedule_filter', 'не имеет значения')
     try:
         connect = await aiomysql.connect(
             host=host,
@@ -78,6 +81,9 @@ async def vacancy_show(message: types.Message, state: FSMContext):
         if emp_mode_filter != 'не имеет значения':
             insert_query += " AND employment_mode LIKE %s"
             values.append(f'%{emp_mode_filter}%')
+        if schedule_filter != 'не имеет значения':
+            insert_query += " AND employment_mode LIKE %s"
+            values.append(f'%{schedule_filter}%')
         await cursor.execute(insert_query, values)
         row = await cursor.fetchone()
         print(f'{insert_query}, \n  {values}')
@@ -96,7 +102,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
                 text=f'Название: <b>{name}</b> \n'
                      f'Уровень дохода: <b>{salary}</b> \n'
                      f'Требуемый опыт: <b>{experience}</b> \n'
-                     f'График работы: <b>{emp_mode}</b> \n'
+                     f'Тип занятости / график работы: <b>{emp_mode}</b> \n'
                      f'Местоположение: <b>{location}</b> \n'
                      f'Работодатель: <b>{employer}</b> \n'
                      f'Навыки: <b>{skills}</b> \n'
@@ -108,7 +114,66 @@ async def vacancy_show(message: types.Message, state: FSMContext):
             await cursor.close()
             connect.close()
         else:
-            await message.answer('Подождите, идет загрузка...', reply_markup=reply.vacancy_play_kb)
+            await message.answer('Подождите, идет загрузка...', reply_markup=reply.del_kb)
+            await asyncio.sleep(5)
+            try:
+                connect = await aiomysql.connect(
+                    host=host,
+                    port=3303,
+                    user=user,
+                    password=password,
+                    db=db_name,
+                    loop=loop
+                )
+                print("соединение с бд успешно установлено")
+                cursor = await connect.cursor()
+                insert_query = '''
+                               SELECT * FROM vacancy WHERE id > %s AND (name LIKE %s OR description LIKE %s)
+                               '''
+                values = [current_id, f'%{text}%', f'%{text}%']
+
+                if location_filter != 'не имеет значения':
+                    insert_query += " AND location LIKE %s"
+                    values.append(f'%{location_filter}%')
+                if exp_filter != 'не имеет значения':
+                    insert_query += " AND experience LIKE %s"
+                    values.append(f'%{exp_filter}%')
+                if emp_mode_filter != 'не имеет значения':
+                    insert_query += " AND employment_mode LIKE %s"
+                    values.append(f'%{emp_mode_filter}%')
+                await cursor.execute(insert_query, values)
+                row = await cursor.fetchone()
+                print(f'{insert_query}, \n  {values}')
+                if row is not None:
+                    print(row)
+                    id_v = row[0]
+                    name = row[1]
+                    salary = row[2]
+                    skills = row[3]
+                    experience = row[4]
+                    emp_mode = row[5]
+                    vacancy_link = row[7]
+                    location = row[8]
+                    employer = row[9]
+                    await message.answer(
+                        text=f'Название: <b>{name}</b> \n'
+                             f'Уровень дохода: <b>{salary}</b> \n'
+                             f'Требуемый опыт: <b>{experience}</b> \n'
+                             f'Тип занятости / График работы: <b>{emp_mode}</b> \n'
+                             f'Местоположение: <b>{location}</b> \n'
+                             f'Работодатель: <b>{employer}</b> \n'
+                             f'Навыки: <b>{skills}</b> \n'
+                             f'Узнать подробнее: {vacancy_link}',
+                        reply_markup=reply.vacancy_play_kb
+                    )
+                    await state.update_data(current_id=id_v)
+                    print(f'id вакансии обновлено {current_id}')
+                    await cursor.close()
+                    connect.close()
+                else:
+                    await message.answer(text='Вакансии закончились', reply_markup=reply.list_end_kb)
+            except Exception as e:
+                await message.answer(f'Ошибка: {e}')
     except Exception as e:
         await message.answer(f'Ошибка: {e}')
     await state.set_state(Parsing_v_states.showing_vacancy)
@@ -186,6 +251,22 @@ async def v_get_filter_location(message: types.Message, state: FSMContext):
     await message.answer(text='Фильтр записан. Выберите следующий или нажмите "Применить фильтр"',
                          reply_markup=reply.vacancy_filter_start_kb)
 
+@vacancy_router.message(Parsing_v_states.waiting_for_filter, F.text == 'График работы')
+async def v_wait_status_filter(message: types.Message):
+    await message.answer(text='Выберите график работы', reply_markup=reply.vacancy_work_schedule_filter_kb)
+
+
+@vacancy_router.message(Parsing_v_states.waiting_for_filter,
+                        or_f(F.text.lower() == 'полный день', F.text.lower() == 'удаленная работа', F.text.lower() == 'гибкий график',
+                             F.text.lower() == 'сменный график', F.text.lower() == 'вахтовый метод', F.text == 'Очистить график работы'))
+async def v_get_filter_work_schedule(message: types.Message, state: FSMContext):
+    if message.text == 'Очистить график работы':
+        await state.update_data(schedule_filter='не имеет значения')
+    else:
+        await state.update_data(schedule_filter=message.text.lower())
+    await message.answer(text='Фильтр записан. Выберите следующий или нажмите "Применить фильтр"',
+                         reply_markup=reply.vacancy_filter_start_kb)
+
 
 @vacancy_router.message(Parsing_v_states.waiting_for_filter,or_f(F.text == 'Применить фильтр', F.text == 'Очистить фильтр'))
 async def v_chek_filter(message: types.Message, state: FSMContext):
@@ -196,8 +277,9 @@ async def v_chek_filter(message: types.Message, state: FSMContext):
     location_f = data.get('location_filter', 'не имеет значения')
     exp_f = data.get('exp_filter', 'не имеет значения')
     emp_f = data.get('emp_mode_filter', 'не имеет значения')
+    schedule_f = data.get('schedule_filter', 'не имеет значения')
     if message.text == 'Применить фильтр':
-        await message.answer(text=f'<b>Фильтр применен</b> \n  <b>Город:</b> {location_f} \n  <b>Опыт работы:</b> {exp_f} \n  <b>Тип занятости:</b> {emp_f}', reply_markup=reply.vacancy_continue_kb)
+        await message.answer(text=f'<b>Фильтр применен</b> \n  <b>Город:</b> {location_f} \n  <b>Опыт работы:</b> {exp_f} \n  <b>Тип занятости:</b> {emp_f} \n  <b>График работы:</b> {schedule_f}', reply_markup=reply.vacancy_continue_kb)
         if data['location_filter'] == 'не имеет значения':
             print("без локации", data['location_filter'])
             await insert_in_db_vacancy(message.text)
@@ -208,6 +290,7 @@ async def v_chek_filter(message: types.Message, state: FSMContext):
         await state.update_data(location_filter='не имеет значения')
         await state.update_data(exp_filter='не имеет значения')
         await state.update_data(emp_mode_filter='не имеет значения')
+        await state.update_data(schedule_filter='не имеет значения')
         await message.answer(text='Фильтр успешно очищен', reply_markup=reply.vacancy_continue_kb)
         if data['location_filter'] == 'не имеет значения':
             print("без локации", data['location_filter'])

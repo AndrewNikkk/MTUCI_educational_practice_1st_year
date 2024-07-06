@@ -5,6 +5,7 @@ from config import *
 
 loop = asyncio.get_event_loop()
 
+
 async def clear_vacancy_table():
     connect = await aiomysql.connect(
         host=host,
