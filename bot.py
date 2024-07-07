@@ -30,8 +30,11 @@ dp.include_router(resume_router)
 
 
 @dp.message(CommandStart())
-async def start_cmd(message: types.Message):
+async def start_cmd(message: types.Message, state: FSMContext):
     await message.answer("Здравствуйте, начнем поиск!", reply_markup=reply.start_kb)
+    await state.clear()
+    await stop_vacancy()
+    await stop_resume()
 
 
 @dp.message(StateFilter('*'), F.text.lower() == 'вернуться к выбору')

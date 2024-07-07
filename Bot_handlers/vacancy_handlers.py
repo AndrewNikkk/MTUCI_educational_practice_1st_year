@@ -59,7 +59,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
     try:
         connect = await aiomysql.connect(
             host=host,
-            port=3303,
+            port=3306,
             user=user,
             password=password,
             db=db_name,
@@ -119,7 +119,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
             try:
                 connect = await aiomysql.connect(
                     host=host,
-                    port=3303,
+                    port=3306,
                     user=user,
                     password=password,
                     db=db_name,

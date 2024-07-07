@@ -1,0 +1,23 @@
+version: '2.17.2'
+services:
+  mysql:
+    image: mysql:latest
+    restart: on-failure
+    environment:
+      MYSQL_ROOT_PASSWORD: A3A09jpH755_1
+      MYSQL_USER: nikkk
+      MYSQL_PASSWORD: A3A09jpH755_1
+    networks:
+      - python-network
+  bot:
+    build: .
+    command: sh -c "python init_db.py && python -m bot"
+    restart: always
+    depends_on:
+      - mysql
+    networks:
+      - python-network
+
+networks:
+  python-network:
+    driver: bridge

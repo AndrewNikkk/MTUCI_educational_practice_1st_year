@@ -101,7 +101,7 @@ async def get_links(text, area_name):
 async def get_vacancy(link):
     connect = await aiomysql.connect(
         host=host,
-        port=3303,
+        port=3306,
         user=user,
         password=password,
         db=db_name,

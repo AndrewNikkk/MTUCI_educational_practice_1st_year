@@ -9,7 +9,7 @@ loop = asyncio.get_event_loop()
 async def clear_vacancy_table():
     connect = await aiomysql.connect(
         host=host,
-        port=3303,
+        port=3306,
         user=user,
         password=password,
         db=db_name,
@@ -29,7 +29,7 @@ async def clear_vacancy_table():
 async def clear_resume_table():
     connect = await aiomysql.connect(
         host=host,
-        port=3303,
+        port=3306,
         user=user,
         password=password,
         db=db_name,
@@ -59,7 +59,7 @@ async def filling_vacancy_table(
 ):
     connect = await aiomysql.connect(
         host=host,
-        port=3303,
+        port=3306,
         user=user,
         password=password,
         db=db_name,
@@ -104,7 +104,7 @@ async def filling_resume_table(
 ):
     connect = await aiomysql.connect(
         host=host,
-        port=3303,
+        port=3306,
         user=user,
         password=password,
         db=db_name,

@@ -9,12 +9,9 @@ RUN pip install aiogram
 RUN pip install aiomysql
 RUN pip install beautifulsoup4
 RUN pip install lxml
+RUN pip install cryptography
+RUN pip install pymysql
+RUN chmod 755 .
 
-CMD ["python", "bot.py"]
+CMD ["python", "init_db.py"]
 
-#FROM mysql:latest
-#
-#ENV MYSQL_DATABASE marvel
-#ENV MYSQL_ROOT_PASSWORD = 12MAR
-#
-#COPY ./init.sql/ /docker-entrypoint-initdb.d/
