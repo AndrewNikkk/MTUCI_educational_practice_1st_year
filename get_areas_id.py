@@ -17,7 +17,7 @@ async def get_areas_json():
 
 
 def find(response, area_name):
-    if response.get("name") == area_name:
+    if response.get("name") == area_name.title():
         return response.get('id'), response.get('parent_id')
     for area in response.get('areas', []):
         area_id, parent_id = find(area, area_name)
