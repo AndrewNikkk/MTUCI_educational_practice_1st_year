@@ -39,7 +39,7 @@ async def resume_parsing(message: types.Message, state: FSMContext):
     await message.answer(f"<b>Введите интересующую Вас должность с помощью клавиатуры</b>",
                          reply_markup=reply.del_kb)
     await state.set_state(Parsing_r_states.showing_resume)
-    await state.update_data(location_filter=message.text)
+    await state.update_data(location_filter=message.text.title())
     if message.text == 'Оставить поле пустым':
         await state.update_data(location_filter='не имеет значения')
     await state.set_state(Parsing_r_states.waiting_for_resume_name)
@@ -228,7 +228,7 @@ async def r_wait_location_filter(message: types.Message, state: FSMContext):
 
 @resume_router.message(Parsing_r_states.waiting_for_location_filter, or_f(F.text, F.text == 'Оставить поле пустым'))
 async def r_get_filter_location(message: types.Message, state: FSMContext):
-    await state.update_data(location_filter=message.text)
+    await state.update_data(location_filter=message.text.title())
     if message.text == 'Оставить поле пустым':
         await state.update_data(location_filter='не имеет значения')
     await state.set_state(Parsing_r_states.waiting_for_filter)

@@ -74,7 +74,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
 
         if location_filter != 'не имеет значения':
             insert_query += " AND location LIKE %s"
-            values.append(f'%{location_filter}%')
+            values.append(f'%{location_filter.title()}%')
         if exp_filter != 'не имеет значения':
             insert_query += " AND experience LIKE %s"
             values.append(f'%{exp_filter}%')
@@ -134,7 +134,7 @@ async def vacancy_show(message: types.Message, state: FSMContext):
 
                 if location_filter != 'не имеет значения':
                     insert_query += " AND location LIKE %s"
-                    values.append(f'%{location_filter}%')
+                    values.append(f'%{location_filter.title()}%')
                 if exp_filter != 'не имеет значения':
                     insert_query += " AND experience LIKE %s"
                     values.append(f'%{exp_filter}%')
@@ -209,7 +209,7 @@ async def v_wait_filter_location(message: types.Message, state: FSMContext):
 
 @vacancy_router.message(Parsing_v_states.waiting_for_location_filter, or_f(F.text, F.text == 'Оставить поле пустым'))
 async def v_get_filter_location(message: types.Message, state: FSMContext):
-    await state.update_data(location_filter=message.text)
+    await state.update_data(location_filter=message.text.title().title())
     if message.text == 'Оставить поле пустым':
         await state.update_data(location_filter='не имеет значения')
     await state.set_state(Parsing_v_states.waiting_for_filter)

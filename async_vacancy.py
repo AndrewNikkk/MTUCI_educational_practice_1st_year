@@ -18,7 +18,8 @@ async def get_links(text, area_name):
             data = await session.get(
                 url=f"https://hh.ru/search/vacancy?text={text}&area={area_id}&page=0",
                 headers={
-                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (HTML, like Gecko) \
+                    Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
             )
             print(text, area_id)
             if data.status != 200:
@@ -35,7 +36,8 @@ async def get_links(text, area_name):
                     data = await session.get(
                         url=f"https://hh.ru/search/vacancy?text={text}&area={area_id}&page=0",
                         headers={
-                            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
+                            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)\
+                             Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
                     )
                     if data.status != 200:
                         return
@@ -52,7 +54,8 @@ async def get_links(text, area_name):
                         data = await session.get(
                             url=f"https://hh.ru/search/vacancy?text={text}&area={area_id}&page={page}",
                             headers={
-                                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
+                                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+                                (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
                         )
                         if data.status != 200:
                             continue
@@ -68,7 +71,8 @@ async def get_links(text, area_name):
             data = await session.get(
                 url=f"https://hh.ru/search/vacancy?text={text}&from=suggest_post&region=113&page=0",
                 headers={
-                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)\
+                     Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
             )
             if data.status != 200:
                 return
@@ -85,7 +89,8 @@ async def get_links(text, area_name):
                     data = await session.get(
                         url=f"https://hh.ru/search/vacancy?text={text}&page={page}",
                         headers={
-                            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
+                            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+                            (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
                     )
                     if data.status != 200:
                         continue
@@ -120,7 +125,8 @@ async def get_vacancy(link):
             data = await session.get(
                 url=link,
                 headers={
-                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+                    (KHTML, like Gecko) Chrome/124.0.0.0 YaBrowser/24.6.0.0 Safari/537.36"}
             )
             if data.status != 200:
                 return

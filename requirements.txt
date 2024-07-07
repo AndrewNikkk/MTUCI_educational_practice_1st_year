@@ -1,0 +1,6 @@
+aiogram
+aiomysql
+beautifulsoup4
+lxml
+cryptography
+pymysql

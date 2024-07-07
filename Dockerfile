@@ -3,14 +3,10 @@ FROM python:3.8
 WORKDIR /app
 
 COPY . /app
+COPY requirements.txt requirements.txt
+RUN pip3 install --upgrade setuptools
+RUN pip3 install -r requirements.txt
 
-RUN pip install --upgrade pip
-RUN pip install aiogram
-RUN pip install aiomysql
-RUN pip install beautifulsoup4
-RUN pip install lxml
-RUN pip install cryptography
-RUN pip install pymysql
 RUN chmod 755 .
 
 CMD ["python", "init_db.py"]

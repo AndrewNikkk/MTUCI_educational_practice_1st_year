@@ -11,7 +11,7 @@ try:
         with connection.cursor() as cursor:
             cursor.execute(f"DROP DATABASE IF EXISTS {db_name}")
             cursor.execute(f"CREATE DATABASE {db_name}")
-        print("База данных очищена и создана")
+        print("База данных создана и очищена")
 except Error as e:
     print(f"Ошибка при работе с базой данных:\n{e}")
 
